@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>コマンドバトルゲーム</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+    }
+    .character-stats {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+    .character-stats div {
+      text-align: center;
+    }
+    #battleLog {
+      height: 200px;
+      overflow-y: scroll;
+      border: 1px solid white;
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+    .commentary {
+      color: yellow;
+    }
+  </style>
+</head>
+<body>
+  <h1>コマンドバトルゲーム</h1>
+  
+  <h2>キャラクタエディタ</h2>
+  <label for="name">名前:</label>
+  <input type="text" id="name"><br>
+  <button onclick="createCharacter()">キャラクター作成</button><br>
+  <button onclick="resetPoints()">ポイント割り振り</button><br>
+  
+  <h2>キャラクターステータス</h2>
+  <div class="character-stats">
+    <div>
+      <h3 id="playerName"></h3>
+      <label for="playerHP">HP:</label>
+      <span id="playerHP"></span><br>
+      <label for="attack">攻撃力:</label>
+      <span id="attackValue"></span><br>
+      <label for="defense">防御力:</label>
+      <span id="defenseValue"></span><br>
+      <label for="agility">素早さ:</label>
+      <span id="agilityValue"></span><br>
+      <label for="dexterity">器用さ:</label>
+      <span id="dexterityValue"></span><br>
+      <label for="initialPoints">初期ポイント:</label>
+      <span id="initialPointsValue"></span><br>
+      <label for="bonusPoints">ボーナスポイント:</label>
+      <span id="bonusPointsValue"></span><br>
+      <button onclick="allocateBonusPoints('attack')">攻撃力+</button>
+      <button onclick="allocateBonusPoints('defense')">防御力+</button>
+      <button onclick="allocateBonusPoints('agility')">素早さ+</button>
+      <button onclick="allocateBonusPoints('dexterity')">器用さ+</button>
+    </div>
+    <div>
+      <h3>敵のキャラクタ</h3>
+      <label for="enemyHP">HP:</label>
+      <span id="enemyHP"></span><br>
+      <label for="enemyAttack">攻撃力:</label>
+      <span id="enemyAttackValue"></span><br>
+      <label for="enemyDefense">防御力:</label>
+      <span id="enemyDefenseValue"></span><br>
+      <label for="enemyAgility">素早さ:</label>
+      <span id="enemyAgilityValue"></span><br>
+      <label for="enemyDexterity">器用さ:</label>
+      <span id="enemyDexterityValue"></span><br>
+    </div>
+  </div>
+  
+  <button id="battleButton" onclick="startBattle()">戦闘開始</button>
+  
+  <h2>戦闘経過</h2>
+  <div id="battleLog"></div>
+  
+  <script>
+    let player;
+    let enemy;
+    let initialPoints;
+    let bonusPoints;
+    let currentTurn = 0;
+    let commentator;
+
+    const commentators = [
+    "古舘伊知郎",
+    "松岡修造",
+    "川平慈英",
+    "野村克也",
+    "中西哲生",
+    "三宅正治",
+    "松本人志",
+    "浜田雅功",
+    "明石家さんま",
+    "所ジョージ"
+  ];
+
+    const analysts = [
+    "伊集院光",
+    "林修",
+    "ビートたけし",
+    "東国原英夫",
+    "岡田斗司夫"
+  ];
+    
+    function generateRandomStats(min, max, total) {
+      const stats = [];
+      let sum = 0;
+      
+      for (let i = 0; i < 4; i++) {
+        const value = Math.floor(Math.random() * (max - min + 1)) + min;
+        stats.push(value);
+        sum += value;
+      }
+      
+      while (sum > total) {
+        const index = Math.floor(Math.random() * 4);
+        if (stats[index] > min) {
+          stats[index]--;
+          sum--;
+        }
+      }
+      
+      return stats;
+    }
+    
+    function resetPoints() {
+      const stats = generateRandomStats(2, 5, initialPoints);
+      player.stats.attack = stats[0];
+      player.stats.defense = stats[1];
+      player.stats.agility = stats[2];
+      player.stats.dexterity = stats[3];
+      
+      bonusPoints = Math.floor(Math.random() * 11) + 10;
+      document.getElementById('bonusPointsValue').textContent = bonusPoints;
+      
+      updateCharacterStats();
+    }
+    
+    function allocateBonusPoints(stat) {
+      if (bonusPoints > 0) {
+        player.stats[stat]++;
+        bonusPoints--;
+        updateCharacterStats();
+        document.getElementById('bonusPointsValue').textContent = bonusPoints;
+      }
+    }
+    
+    function createCharacter() {
+      const name = document.getElementById('name').value;
+      
+      player = {
+        name: name,
+        hp: 100,
+        stats: {
+          attack: 0,
+          defense: 0,
+          agility: 0,
+          dexterity: 0
+        }
+      };
+      
+      initialPoints = 15;
+      document.getElementById('initialPointsValue').textContent = initialPoints;
+      
+      resetPoints();
+      updateCharacterStats();
+    }
+    
+    function updateCharacterStats() {
+      document.getElementById('playerName').textContent = player.name;
+      document.getElementById('playerHP').textContent = player.hp;
+      document.getElementById('attackValue').textContent = player.stats.attack;
+      document.getElementById('defenseValue').textContent = player.stats.defense;
+      document.getElementById('agilityValue').textContent = player.stats.agility;
+      document.getElementById('dexterityValue').textContent = player.stats.dexterity;
+    }
+    
+    function createEnemy() {
+      const enemyStats = generateRandomStats(2, 7, 28);
+      
+      enemy = {
+        name: 'モンスター',
+        hp: 100,
+        stats: {
+          attack: enemyStats[0],
+          defense: enemyStats[1],
+          agility: enemyStats[2],
+          dexterity: enemyStats[3]
+        }
+      };
+      
+      document.getElementById('enemyHP').textContent = enemy.hp;
+      document.getElementById('enemyAttackValue').textContent = enemy.stats.attack;
+      document.getElementById('enemyDefenseValue').textContent = enemy.stats.defense;
+      document.getElementById('enemyAgilityValue').textContent = enemy.stats.agility;
+      document.getElementById('enemyDexterityValue').textContent = enemy.stats.dexterity;
+    }
+    
+    function startBattle() {
+      if (currentTurn === 0) {
+        createEnemy();
+        document.getElementById('battleButton').textContent = '次のターン';
+        commentator = commentators[Math.floor(Math.random() * commentators.length)];
+      } else {
+        document.getElementById('battleLog').innerHTML = ''; // 次のターン開始時にメッセージ欄をクリア
+      }
+      
+      const battleLog = document.getElementById('battleLog');
+      
+      if (player.hp > 0 && enemy.hp > 0) {
+        const playerAgility = player.stats.agility;
+        const enemyAgility = enemy.stats.agility;
+        const playerPriority = playerAgility + Math.random();
+        const enemyPriority = enemyAgility + Math.random();
+        
+        if (playerPriority >= enemyPriority) {
+          const playerDamage = calculateDamage(player, enemy);
+          if (playerDamage === 0) {
+            battleLog.innerHTML += `<p>${commentator}: ${getCommentary(player, enemy, playerDamage, true)}</p>`;
+          } else {
+            enemy.hp -= playerDamage;
+            battleLog.innerHTML += `<p>${commentator}: ${getCommentary(player, enemy, playerDamage, false)}</p>`;
+          }
+          
+          if (enemy.hp <= 0) {
+            battleLog.innerHTML += `<p>${commentator}: ${enemy.name}を倒した！</p>`;
+            document.getElementById('battleButton').disabled = true;
+            return;
+          }
+          
+          const enemyDamage = calculateDamage(enemy, player);
+          if (enemyDamage === 0) {
+            battleLog.innerHTML += `<p>${commentator}: ${getCommentary(enemy, player, enemyDamage, true)}</p>`;
+          } else {
+            player.hp -= enemyDamage;
+            battleLog.innerHTML += `<p>${commentator}: ${getCommentary(enemy, player, enemyDamage, false)}</p>`;
+          }
+        } else {
+          const enemyDamage = calculateDamage(enemy, player);
+          if (enemyDamage === 0) {
+            battleLog.innerHTML += `<p>${commentator}: ${getCommentary(enemy, player, enemyDamage, true)}</p>`;
+          } else {
+            player.hp -= enemyDamage;
+            battleLog.innerHTML += `<p>${commentator}: ${getCommentary(enemy, player, enemyDamage, false)}</p>`;
+          }
+          
+          if (player.hp <= 0) {
+            battleLog.innerHTML += `<p>${commentator}: ${player.name}は倒れた...</p>`;
+            document.getElementById('battleButton').disabled = true;
+            return;
+          }
+          
+          const playerDamage = calculateDamage(player, enemy);
+          if (playerDamage === 0) {
+            battleLog.innerHTML += `<p>${commentator}: ${getCommentary(player, enemy, playerDamage, true)}</p>`;
+          } else {
+            enemy.hp -= playerDamage;
+            battleLog.innerHTML += `<p>${commentator}: ${getCommentary(player, enemy, playerDamage, false)}</p>`;
+          }
+        }
+        
+        if (player.hp <= 0) {
+          battleLog.innerHTML += `<p>${commentator}: ${player.name}は倒れた...</p>`;
+          document.getElementById('battleButton').disabled = true;
+          return;
+        }
+        
+        currentTurn++;
+        updateCharacterStats();
+        document.getElementById('enemyHP').textContent = enemy.hp;
+
+        if (currentTurn % 3 === 0) {
+          const analyst = analysts[Math.floor(Math.random() * analysts.length)];
+          const commentary = getAnalystCommentary();
+          battleLog.innerHTML += `<p class="commentary">${analyst}: ${commentary}</p>`;
+        }
+      }
+    }
+    
+    function calculateDamage(attacker, defender) {
+      const baseDamage = attacker.stats.attack;
+      const defense = defender.stats.defense;
+      const agility = defender.stats.agility;
+      const dexterity = attacker.stats.dexterity;
+      
+      const damageReduction = Math.floor(defense / 3);
+      const dodgeChance = agility * 0.03;
+      const hitChance = dexterity * 0.03;
+      
+      if (Math.random() < dodgeChance) {
+        return 0;
+      }
+      
+      if (Math.random() > hitChance) {
+        return 0;
+      }
+      
+      const randomDamage = Math.floor(Math.random() * 6) + 1;
+      const damage = Math.max(baseDamage - damageReduction + randomDamage, 1);
+      return damage;
+    }
+    
+    function getCommentary(attacker, defender, damage, isDodged) {
+      const commentaries = [
+      `${attacker.name}の攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}が${defender.name}を攻撃！${damage}のダメージを与えた！`,
+      `${attacker.name}の一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の猛攻！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の強烈な一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の素早い攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の正確な一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の力強い攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の鋭い攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の巧みな攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の見事な一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の迅速な攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の強力な一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の勇猛な攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の華麗な攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の驚異的な一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の圧倒的な攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の精密な一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の豪快な攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の雷のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の疾風のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の炎のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の水のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の大地のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の閃光のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の雷鳴のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の烈風のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の業火のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の怒涛のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の大地震のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の稲妻のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の旋風のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の火炎のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の大津波のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の地割れのような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の雷撃のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の突風のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の火柱のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の大洪水のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の山崩れのような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の電撃のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の竜巻のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の噴火のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の大噴水のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の隕石のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の彗星のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の流星のような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の超新星のような一撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}のブラックホールのような攻撃！${defender.name}に${damage}のダメージを与えた！`,
+      `${attacker.name}の時空の歪みのような一撃！${defender.name}に${damage}のダメージを与えた！`
+    ];
+
+      const dodgeCommentaries = [
+      `${defender.name}が攻撃をかわした！`,
+      `${defender.name}は素早く身をかわした！`,
+      `${attacker.name}の攻撃は外れた！`,
+      `${defender.name}は巧みに攻撃を避けた！`,
+      `${defender.name}の機敏な動きで攻撃を回避した！`,
+      `${attacker.name}の攻撃は${defender.name}に届かなかった！`,
+      `${defender.name}は軽やかにステップを踏んで攻撃をかわした！`,
+      `${defender.name}の素早い反応で攻撃を避けることができた！`,
+      `${attacker.name}の攻撃は${defender.name}の影を捉えることができなかった！`,
+      `${defender.name}は身を屈めて攻撃をかわした！`,
+      `${defender.name}の柔軟な動きで攻撃を回避した！`,
+      `${attacker.name}の攻撃は${defender.name}の毛先にも触れることができなかった！`,
+      `${defender.name}は華麗なフットワークで攻撃を避けた！`,
+      `${defender.name}の素早いかわし技で攻撃を無効化した！`,
+      `${attacker.name}の攻撃は${defender.name}の影を追いかけるだけに終わった！`,
+      `${defender.name}は身をひねって攻撃をかわした！`,
+      `${defender.name}の俊敏な動きで攻撃を回避した！`,
+      `${attacker.name}の攻撃は${defender.name}の残像を捉えることができなかった！`,
+      `${defender.name}は優雅に身をかわして攻撃を避けた！`,
+      `${defender.name}の素早い反射神経で攻撃を回避した！`,
+      `${attacker.name}の攻撃は${defender.name}の髪の毛一本にも触れることができなかった！`,
+      `${defender.name}は軽業師のように攻撃をかわした！`,
+      `${defender.name}の驚異的な反応速度で攻撃を回避した！`,
+      `${attacker.name}の攻撃は${defender.name}の幻影を追いかけるだけに終わった！`,
+      `${defender.name}は身を翻して攻撃をかわした！`,
+      `${defender.name}の超人的な動きで攻撃を回避した！`,
+      `${attacker.name}の攻撃は${defender.name}の残像すら捉えることができなかった！`,
+      `${defender.name}は魔法のように攻撃を避けた！`,
+      `${defender.name}の神業的な反応で攻撃を回避した！`,
+      `${attacker.name}の攻撃は${defender.name}の幻影を追いかけるだけに終わった！`,
+      `${defender.name}は攻撃を避けるために次元を超えたかのような動きを見せた！`,
+      `${defender.name}の超常的な反応速度で攻撃を回避した！`,
+      `${attacker.name}の攻撃は${defender.name}の残像すら捉えることができなかった！`
+    ];
+
+      if (isDodged) {
+        const index = Math.floor(Math.random() * dodgeCommentaries.length);
+        return dodgeCommentaries[index];
+      } else {
+        const index = Math.floor(Math.random() * commentaries.length);
+        return commentaries[index];
+      }
+    }
+
+    function getAnalystCommentary() {
+      const commentaries = [
+      `ここまでの戦況を見ると、${player.name}と${enemy.name}の実力は拮抗しているようです。しかし、${player.name}の素早さが少し上回っているため、攻撃のチャンスが多いかもしれません。ただ、${enemy.name}の防御力も高いので、ダメージを与えるのは容易ではないでしょう。`,
+      `${player.name}の攻撃力は高いですが、${enemy.name}の防御力も負けていません。一方、${enemy.name}の素早さは${player.name}よりも低いため、攻撃を当てるのが難しいかもしれません。どちらが勝つかは、ここからの戦略次第だと思います。`,
+      `現在のHPを見ると、${player.name}と${enemy.name}はほぼ互角の状態です。ただ、${player.name}の器用さが高いので、攻撃が当たる確率が高くなっています。${enemy.name}は防御に重点を置くか、素早さを生かして攻撃をかわすか、戦術を考える必要がありそうです。`,
+      `${player.name}の攻撃力と素早さが高いので、攻撃を当てやすい状況です。しかし、${enemy.name}の防御力も高いため、ダメージを与えるのは簡単ではありません。HPの差は僅かですが、${player.name}がリードしているので、このまま攻め続けるのが良いでしょう。`,
+      `${enemy.name}の攻撃力は${player.name}よりも高いですが、素早さが低いため、攻撃を当てるのが難しい状況です。${player.name}は素早く動いて攻撃をかわしつつ、チャンスを見て反撃するのが効果的だと思います。ただ、${enemy.name}の防御力も高いので、決定打を与えるのは容易ではないでしょう。`,
+      `両者のHPは残り少なくなってきました。次の一撃で勝負が決まるかもしれません。${player.name}の素早さが高いので、先に攻撃できる可能性が高いです。ただ、${enemy.name}の防御力も侮れないので、慎重に攻めていく必要があります。`,
+      `${player.name}の攻撃力と器用さが高いので、攻撃が当たる確率が高くなっています。ただ、${enemy.name}の防御力も負けていないので、ダメージを与えるのは簡単ではありません。HPに大きな差はないので、一発逆転の可能性もあります。`,
+      `${enemy.name}の攻撃力は高いですが、素早さが低いため、攻撃を当てるのが難しい状況です。${player.name}は素早く動いて攻撃をかわしつつ、チャンスを見て反撃するのが良いでしょう。ただ、${enemy.name}の防御力も高いので、とどめを刺すのは容易ではないかもしれません。`,
+      `ここまでの戦いを見ると、${player.name}と${enemy.name}の実力は拮抗しているようです。${player.name}の素早さが少し上回っているため、攻撃のチャンスが多いかもしれません。ただ、${enemy.name}の防御力も高いので、ダメージを与えるのは簡単ではないでしょう。`,
+      `${player.name}の攻撃力は高いですが、${enemy.name}の防御力も負けていません。一方、${enemy.name}の素早さは${player.name}よりも低いため、攻撃を当てるのが難しいかもしれません。どちらが勝つかは、ここからの戦略次第だと思います。`,
+      `現在のHPを見ると、${player.name}と${enemy.name}はほぼ互角の状態です。ただ、${player.name}の器用さが高いので、攻撃が当たる確率が高くなっています。${enemy.name}は防御に重点を置くか、素早さを生かして攻撃をかわすか、戦術を考える必要がありそうです。`,
+      `${player.name}の攻撃力と素早さが高いので、攻撃を当てやすい状況です。しかし、${enemy.name}の防御力も高いため、ダメージを与えるのは簡単ではありません。HPの差は僅かですが、${player.name}がリードしているので、このまま攻め続けるのが良いでしょう。`,
+      `${enemy.name}の攻撃力は${player.name}よりも高いですが、素早さが低いため、攻撃を当てるのが難しい状況です。${player.name}は素早く動いて攻撃をかわしつつ、チャンスを見て反撃するのが効果的だと思います。ただ、${enemy.name}の防御力も高いので、決定打を与えるのは容易ではないでしょう。`,
+      `両者のHPは残り少なくなってきました。次の一撃で勝負が決まるかもしれません。${player.name}の素早さが高いので、先に攻撃できる可能性が高いです。ただ、${enemy.name}の防御力も侮れないので、慎重に攻めていく必要があります。`,
+      `${player.name}の攻撃力と器用さが高いので、攻撃が当たる確率が高くなっています。ただ、${enemy.name}の防御力も負けていないので、ダメージを与えるのは簡単ではありません。HPに大きな差はないので、一発逆転の可能性もあります。`,
+      `${enemy.name}の攻撃力は高いですが、素早さが低いため、攻撃を当てるのが難しい状況です。${player.name}は素早く動いて攻撃をかわしつつ、チャンスを見て反撃するのが良いでしょう。ただ、${enemy.name}の防御力も高いので、とどめを刺すのは容易ではないかもしれません。`,
+      `ここまでの戦況を見ると、${player.name}と${enemy.name}の実力は拮抗しているようです。${player.name}の素早さが少し上回っているため、攻撃のチャンスが多いかもしれません。ただ、${enemy.name}の防御力も高いので、ダメージを与えるのは簡単ではないでしょう。`,
+      `${player.name}の攻撃力は高いですが、${enemy.name}の防御力も負けていません。一方、${enemy.name}の素早さは${player.name}よりも低いため、攻撃を当てるのが難しいかもしれません。どちらが勝つかは、ここからの戦略次第だと思います。`,
+      `現在のHPを見ると、${player.name}と${enemy.name}はほぼ互角の状態です。ただ、${player.name}の器用さが高いので、攻撃が当たる確率が高くなっています。${enemy.name}は防御に重点を置くか、素早さを生かして攻撃をかわすか、戦術を考える必要がありそうです。`,
+      `${player.name}の攻撃力と素早さが高いので、攻撃を当てやすい状況です。しかし、${enemy.name}の防御力も高いため、ダメージを与えるのは簡単ではありません。HPの差は僅かですが、${player.name}がリードしているので、このまま攻め続けるのが良いでしょう。`,
+      `${enemy.name}の攻撃力は${player.name}よりも高いですが、素早さが低いため、攻撃を当てるのが難しい状況です。${player.name}は素早く動いて攻撃をかわしつつ、チャンスを見て反撃するのが効果的だと思います。ただ、${enemy.name}の防御力も高いので、決定打を与えるのは容易ではないでしょう。`,
+      `両者のHPは残り少なくなってきました。次の一撃で勝負が決まるかもしれません。${player.name}の素早さが高いので、先に攻撃できる可能性が高いです。ただ、${enemy.name}の防御力も侮れないので、慎重に攻めていく必要があります。`,
+      `${player.name}の攻撃力と器用さが高いので、攻撃が当たる確率が高くなっています。ただ、${enemy.name}の防御力も負けていないので、ダメージを与えるのは簡単ではありません。HPに大きな差はないので、一発逆転の可能性もあります。`,
+      `${enemy.name}の攻撃力は高いですが、素早さが低いため、攻撃を当てるのが難しい状況です。${player.name}は素早く動いて攻撃をかわしつつ、チャンスを見て反撃するのが良いでしょう。ただ、${enemy.name}の防御力も高いので、とどめを刺すのは容易ではないかもしれません。`,
+      `ここまでの戦いを振り返ると、${player.name}と${enemy.name}の実力は拮抗しているようです。${player.name}の素早さが少し上回っているため、攻撃のチャンスが多いかもしれません。ただ、${enemy.name}の防御力も高いので、ダメージを与えるのは簡単ではないでしょう。`,
+      `${player.name}の攻撃力は高いですが、${enemy.name}の防御力も負けていません。一方、${enemy.name}の素早さは${player.name}よりも低いため、攻撃を当てるのが難しいかもしれません。どちらが勝つかは、ここからの戦略次第だと思います。`,
+      `現在のHPを見ると、${player.name}と${enemy.name}はほぼ互角の状態です。ただ、${player.name}の器用さが高いので、攻撃が当たる確率が高くなっています。${enemy.name}は防御に重点を置くか、素早さを生かして攻撃をかわすか、戦術を考える必要がありそうです。`,
+      `${player.name}の攻撃力と素早さが高いので、攻撃を当てやすい状況です。しかし、${enemy.name}の防御力も高いため、ダメージを与えるのは簡単ではありません。HPの差は僅かですが、${player.name}がリードしているので、このまま攻め続けるのが良いでしょう。`,
+      `${enemy.name}の攻撃力は${player.name}よりも高いですが、素早さが低いため、攻撃を当てるのが難しい状況です。${player.name}は素早く動いて攻撃をかわしつつ、チャンスを見て反撃するのが効果的だと思います。ただ、${enemy.name}の防御力も高いので、決定打を与えるのは容易ではないでしょう。`,
+      `両者のHPは残り少なくなってきました。次の一撃で勝負が決まるかもしれません。${player.name}の素早さが高いので、先に攻撃できる可能性が高いです。ただ、${enemy.name}の防御力も侮れないので、慎重に攻めていく必要があります。`
+        ];
+
+      const index = Math.floor(Math.random() * commentaries.length);
+      return commentaries[index];
+    }
+  </script>
+</body>
+</html>
